@@ -358,13 +358,23 @@ export function countInFlight(): number {
 /**
  * Only `completed` jobs are counted. Higgsfield does not charge for `failed` or
  * `nsfw` requests, and refunds any credits it reserved.
+ *
+ * `metered` counts completed jobs on token-metered models (e.g. Seedance),
+ * where Higgsfield's API never reports a price — not at estimate time, not
+ * after completion. `usd` silently excludes them (their est_usd is NULL and
+ * SQL SUM skips NULLs), so `usd` is a floor, not the real total. Surface
+ * `metered` to the caller rather than let the number look complete when it
+ * isn't — the real total for those jobs is only visible in Higgsfield's own
+ * console.
  */
-export function spendSince(sinceMs: number): { usd: number; count: number } {
+export function spendSince(sinceMs: number): { usd: number; count: number; metered: number } {
   const row = db()
     .prepare(
-      `SELECT COALESCE(SUM(est_usd), 0) AS usd, COUNT(*) AS count
+      `SELECT COALESCE(SUM(est_usd), 0) AS usd,
+              COUNT(*) AS count,
+              COUNT(*) FILTER (WHERE est_usd IS NULL) AS metered
        FROM jobs WHERE status = 'completed' AND created_at >= ?`,
     )
-    .get(sinceMs) as { usd: number; count: number };
-  return { usd: row.usd, count: row.count };
+    .get(sinceMs) as { usd: number; count: number; metered: number };
+  return { usd: row.usd, count: row.count, metered: row.metered };
 }

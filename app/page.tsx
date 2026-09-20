@@ -9,9 +9,9 @@ import { AFFILIATE, BRAND } from "@/lib/brand";
 import { LogoTile } from "@/components/Logo";
 
 interface Stats {
-  today: { usd: number; count: number };
-  month: { usd: number; count: number };
-  allTime: { usd: number; count: number };
+  today: { usd: number; count: number; metered: number };
+  month: { usd: number; count: number; metered: number };
+  allTime: { usd: number; count: number; metered: number };
   outputs: number;
   diskBytes: number;
   active: number;
@@ -69,6 +69,26 @@ export default function HomePage() {
           <Stat label="All time" value={formatUsd(stats?.allTime.usd ?? 0)} sub={`${stats?.allTime.count ?? 0} jobs`} />
           <Stat label="Stored locally" value={formatBytes(stats?.diskBytes ?? 0)} sub={`${stats?.outputs ?? 0} files`} />
         </section>
+
+        {(stats?.allTime.metered ?? 0) > 0 && (
+          <p className="nb-border rounded-xl bg-warn/10 px-4 py-3 text-xs leading-relaxed text-text">
+            <span className="font-bold">Costo incompleto: </span>
+            {stats!.allTime.metered} generación{stats!.allTime.metered === 1 ? "" : "es"} de
+            modelo{stats!.allTime.metered === 1 ? "" : "s"} por token (ej. Seedance) no suma
+            {stats!.allTime.metered === 1 ? "" : "n"} a los totales de arriba — Higgsfield no
+            informa su precio por API, ni antes ni después de generar. El número real de gasto
+            está solo en{" "}
+            <a
+              href="https://console.higgsfield.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-dotted underline-offset-2 hover:text-accent"
+            >
+              console.higgsfield.ai
+            </a>
+            .
+          </p>
+        )}
 
         <a
           href={AFFILIATE.href}

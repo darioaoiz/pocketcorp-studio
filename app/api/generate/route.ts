@@ -38,8 +38,21 @@ export async function POST(req: Request) {
 
     const cap = Number(getSetting("spend_cap") ?? "");
     if (Number.isFinite(cap) && cap > 0) {
+      if (usd === null) {
+        // Token-metered models (Seedance, etc.) report no price at all, not
+        // even after the fact — Higgsfield's API has no field for it. A cap
+        // that silently treated the unknown as $0 isn't a cap, it's a hole:
+        // refuse instead, since we cannot honestly say this stays under it.
+        return NextResponse.json(
+          {
+            error:
+              "This model's price isn't reported by Higgsfield's API, so the spend cap can't verify it stays under budget. Check your real balance at console.higgsfield.ai, then clear or raise the cap in Settings to proceed anyway.",
+          },
+          { status: 402 },
+        );
+      }
       const spent = spendSince(Date.now() - MONTH_MS).usd;
-      if (spent + (usd ?? 0) > cap) {
+      if (spent + usd > cap) {
         return NextResponse.json(
           {
             error: `Spend cap reached: $${spent.toFixed(2)} of $${cap.toFixed(2)} used in the last 30 days. Raise or clear the cap in Settings.`,

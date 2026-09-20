@@ -15,10 +15,11 @@ export async function GET() {
   const totals = db()
     .prepare(
       `SELECT COUNT(*) AS jobs,
-              COALESCE(SUM(CASE WHEN status = 'completed' THEN est_usd END), 0) AS usd
+              COALESCE(SUM(CASE WHEN status = 'completed' THEN est_usd END), 0) AS usd,
+              COUNT(*) FILTER (WHERE status = 'completed' AND est_usd IS NULL) AS metered
        FROM jobs`,
     )
-    .get() as { jobs: number; usd: number };
+    .get() as { jobs: number; usd: number; metered: number };
 
   const outputs = db().prepare("SELECT COUNT(*) AS n FROM generations").get() as { n: number };
   const disk = db().prepare("SELECT COALESCE(SUM(bytes), 0) AS n FROM generations").get() as {
@@ -33,7 +34,7 @@ export async function GET() {
   return NextResponse.json({
     today: spendSince(startOfDay.getTime()),
     month: spendSince(startOfMonth.getTime()),
-    allTime: { usd: totals.usd, count: totals.jobs },
+    allTime: { usd: totals.usd, count: totals.jobs, metered: totals.metered },
     outputs: outputs.n,
     diskBytes: disk.n,
     active: active.n,

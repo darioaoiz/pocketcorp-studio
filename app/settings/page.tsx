@@ -115,7 +115,7 @@ export default function SettingsPage() {
 
           <Field
             label="Spend cap (USD per 30 days)"
-            hint="Blocks new generations once estimated spend passes this. Leave empty for no cap."
+            hint="Blocks new generations once estimated spend passes this. Leave empty for no cap. Doesn't cover token-metered models (e.g. Seedance) — Higgsfield's API never reports their price, so a cap can't verify them and blocks them outright instead. Check console.higgsfield.ai for your real balance."
           >
             <input
               type="number"

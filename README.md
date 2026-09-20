@@ -187,6 +187,28 @@ media folder, never the database: `storage/studio.db` is written to constantly a
 client can corrupt a SQLite file mid-write, while `storage/media/*` files are written once and
 never modified afterward, which is exactly the case cloud-sync folders handle safely.
 
+### Actual setup on this machine: rclone, not Drive Desktop
+
+This Mac (a 2014 Mac mini) is stuck on macOS 12 Monterey — Apple's last supported OS for that
+model — and Google Drive for desktop now requires macOS 13+, so it won't install here.
+`POCKETCORP_MEDIA_DIR` above is unused; instead, `storage/media` stays local and a separate
+`rclone` job copies it to Drive on a timer:
+
+- **Remote**: `gdrive:` (configured via `rclone config`, OAuth token in
+  `~/.config/rclone/rclone.conf`). Uses rclone's shared client ID, which Google/rclone says
+  will stop working sometime in 2026 — if backups silently stop, that's why; the fix is
+  running `rclone config reconnect gdrive:` with a self-created client ID
+  (<https://rclone.org/drive/#making-your-own-client-id>).
+- **Destination**: `PocketCorp Outputs` folder in Dario's Drive, created via `rclone mkdir`.
+- **Schedule**: a launchd agent, `~/Library/LaunchAgents/com.pocketcorp.studio.drivebackup.plist`,
+  runs `rclone copy storage/media gdrive:"PocketCorp Outputs"` every 15 minutes (and once on
+  login). `copy`, not `sync` — it only ever adds files, so a local `rm` never deletes anything
+  already backed up.
+- **Logs**: `~/Library/Logs/PocketCorpDriveSync/sync.log`.
+- **To check it's alive**: `launchctl list | grep pocketcorp`.
+- **To pause it**: `launchctl unload ~/Library/LaunchAgents/com.pocketcorp.studio.drivebackup.plist`
+  (re-enable with `launchctl load` on the same path).
+
 ## Concurrency
 
 Higgsfield applies back-pressure two different ways, and the worker treats both as "wait",
